@@ -69,6 +69,7 @@ struct sc_screen {
 
     bool paused;
     AVFrame *resume_frame;
+    bool should_lock_mouse_to_center;
 };
 
 struct sc_screen_params {

@@ -842,6 +842,26 @@ sc_screen_is_mouse_capture_key(SDL_Keycode key) {
     return key == SDLK_LALT || key == SDLK_LGUI || key == SDLK_RGUI;
 }
 
+static bool lock_mouse_to_center_unless_high_velocity(struct sc_screen *screen, const SDL_MouseMotionEvent *event) {
+    if (event->type != SDL_MOUSEMOTION) {
+        return true;
+    }
+
+    if (event->xrel > 80 || event->yrel > 80) {
+        SDL_ShowCursor(SDL_ENABLE);
+        return false;
+    }
+
+    int x, y;
+    SDL_GetWindowSize(screen->window, &x, &y);
+    SDL_EventState(SDL_MOUSEMOTION, SDL_IGNORE);
+    SDL_WarpMouseInWindow(screen->window, x / 2, y / 2);
+    SDL_EventState(SDL_MOUSEMOTION, SDL_ENABLE);
+    SDL_ShowCursor(SDL_DISABLE);
+
+    return true;
+}
+
 bool
 sc_screen_handle_event(struct sc_screen *screen, const SDL_Event *event) {
     bool relative_mode = sc_screen_is_relative_mode(screen);
@@ -908,6 +928,12 @@ sc_screen_handle_event(struct sc_screen *screen, const SDL_Event *event) {
                         sc_screen_set_mouse_capture(screen, false);
                     }
                     break;
+                case SDL_WINDOWEVENT_ENTER:
+                    screen->should_lock_mouse_to_center = true;
+                    break;
+                case SDL_WINDOWEVENT_LEAVE:
+                    screen->should_lock_mouse_to_center = false;
+                    break;
             }
             return true;
         case SDL_KEYDOWN:
@@ -944,6 +970,9 @@ sc_screen_handle_event(struct sc_screen *screen, const SDL_Event *event) {
             break;
         case SDL_MOUSEWHEEL:
         case SDL_MOUSEMOTION:
+            if (screen->should_lock_mouse_to_center) {
+                screen->should_lock_mouse_to_center = lock_mouse_to_center_unless_high_velocity(screen, &event->motion);
+            }
         case SDL_MOUSEBUTTONDOWN:
             if (relative_mode && !sc_screen_get_mouse_capture(screen)) {
                 // Do not forward to input manager, the mouse will be captured

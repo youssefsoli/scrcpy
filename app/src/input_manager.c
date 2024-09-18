@@ -662,6 +662,8 @@ sc_input_manager_process_mouse_motion(struct sc_input_manager *im,
         return;
     }
 
+    LOGE("x: %d, y: %d, xrel: %d, yrel: %d", event->x, event->y, event->xrel, event->yrel);
+
     struct sc_mouse_motion_event evt = {
         .position = sc_input_manager_get_position(im, event->x, event->y),
         .pointer_id = im->vfinger_down ? SC_POINTER_ID_GENERIC_FINGER
